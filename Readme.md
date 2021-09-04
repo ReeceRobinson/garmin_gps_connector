@@ -47,6 +47,7 @@ You can run this function by enabling it with the `--mode monitor` command line 
 I.e., `python3 GarminGpsConnector.py --mode monitor`
 
 Monitoring Configuration:
+
 ![Monitoring Setup](https://github.com/ReeceRobinson/garmin_gps_connector/blob/master/MonitorSetup.png)
 
 The following image and ASCII figures show a capture of a single message.
