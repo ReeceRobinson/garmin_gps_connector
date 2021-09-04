@@ -3,6 +3,14 @@ This application provides two functions:
  - Garmin GPS Hardware Connector for Mac (or Linux) computers
  - Garmin AviationIn message capture from X-Plane.
 
+## Python Requirements
+This application is written in Python version 3.x and has the following code library dependencies:
+- click~=7.1.2
+- pyserial~=3.5
+- PyYAML~=5.4.1
+- xpc
+
+
 ## X-Plane Garmin GPS Connector
 
 This connector depends on the XPC [X-Plane Connect](https://github.com/nasa/XPlaneConnect) created by NASA.
@@ -39,9 +47,11 @@ You can run this function by enabling it with the `--mode monitor` command line 
 I.e., `python3 GarminGpsConnector.py --mode monitor`
 
 The following image and ASCII figures show a capture of a single message.
+
 Byte View:
 
 ![Message Structure Example](https://github.com/ReeceRobinson/garmin_gps_connector/blob/master/Message%20Structure%20Example.png)
+
 ASCII View:
 ```
 z00000
