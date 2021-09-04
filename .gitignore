@@ -1,0 +1,5 @@
+/venv/
+/.idea/
+/garmin_gps_connector.log
+/output.csv
+/xpc.py

@@ -1,0 +1,13 @@
+x-plane:
+  connection:
+    serial:
+      device: /dev/cu.usbserial-143120
+      baud: 9600
+      timeout: 5
+    network:
+      host: localhost
+      xpport: 49009
+      port: 0
+      timeout: 2000
+  output:
+    filename: output.csv
