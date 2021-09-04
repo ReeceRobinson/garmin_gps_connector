@@ -34,6 +34,11 @@ To run this application, first start X-Plane then run `GarminGpsConnector.py`.
 
 I.e., `python3 GarminGpsConnector.py`
 
+GPS Configuration:
+
+![Monitoring Setup](https://github.com/ReeceRobinson/garmin_gps_connector/blob/master/GpsSetup.png)
+
+
 ## Garmin AviationIn Format Message Capture 
 Finding information online for the Garmin AviationIn message format was too hard. Garmin has not published details of 
 this serial protocol. 
