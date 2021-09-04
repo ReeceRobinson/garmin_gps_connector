@@ -11,13 +11,20 @@ Make sure you have the XPC plugin installed and enabled in your X-Plane applicat
 application to query the simulation for the data needed to drive your GPS device.
 
 You need a serial cable connected between your X-Plane simulation machine and your physical Garmin GPS.
-This can be an RS232 to USB adapter. The USB adapter will show up in the devices directory i.e., /dev. 
-Modify the config.yml file with your serial device. 
+It is okay to use an RS232 to USB adapter if you have a Macintosh computer. The USB adapter will show up in the devices 
+directory e.g., `/dev/cu.usbserial-143120` (I use a Prolific Serial/USB adapter). 
+
+Don't forget to modify the `config.yml` file with your serial device. 
 
 The Network/Loopback interface is used to periodically query the running simulation for position
 and speed data. This data is formatted into a valid Garmin AviationIn formatted message and sent via the
 serial connection to your GPS device. Note you can run this application on a different machine to the one running X-Plane.
+
 You must connect your GPS to the machine running this connector.
+
+To run this application, first start X-Plane then run `GarminGpsConnector.py`.
+
+I.e., `python3 GarminGpsConnector.py`
 
 ## Garmin AviationIn Format Message Capture 
 Finding information online for the Garmin AviationIn message format was too hard. Garmin has not published details of 
@@ -27,8 +34,11 @@ Knowing that X-Plane did have Windows only support for Garmin GPS hardware, I cr
 utility that connects to the PC serial port and saves the data sent from the Windows version of X-Plane. This allowed 
 me to determine what the protocol was and how to create it.
 
-This function is enabled by running GarminGpsConnector with the `--mode monitor` command line option.
+You can run this function by enabling it with the `--mode monitor` command line option when running `GarminGpsConnector.py`.
 
+I.e., `python3 GarminGpsConnector.py --mode monitor`
+
+The following image and ASCII figures show a capture of a single message.
 Byte View:
 
 ![Message Structure Example](https://github.com/ReeceRobinson/garmin_gps_connector/blob/master/Message%20Structure%20Example.png)
