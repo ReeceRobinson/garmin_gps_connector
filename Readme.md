@@ -8,7 +8,7 @@ To capture GPS output messages, this application connects to a running X-Plane i
 
 Byte View:
 
-![Message Structure Example](Message Structure Example.png)
+![Message Structure Example](https://github.com/ReeceRobinson/garmin_gps_connector/blob/master/Message%20Structure%20Example.png)
 ASCII View:
 ```
 z00000
