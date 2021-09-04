@@ -1,10 +1,33 @@
 # X-Plane Garmin GPS Connector
 This application provides two functions:
- - AviationIn message capture from X-Plane
- - Garmin GPS Hardware Connector for Mac (or Linux) computers.
- 
-## AviationIn Format Message Capture 
-To capture GPS output messages, this application connects to a running X-Plane instance to set the position of the selected aircraft to known locations. The resulting GPS output from X-Plane is captured via a serial interface (windows only) and stored for analysis.
+ - Garmin GPS Hardware Connector for Mac (or Linux) computers
+ - Garmin AviationIn message capture from X-Plane.
+
+## X-Plane Garmin GPS Connector
+
+This connector depends on the XPC [X-Plane Connect](https://github.com/nasa/XPlaneConnect) created by NASA.
+The X-Plane Connect (XPC) Toolbox is an open source research tool used to interact with X-Plane.
+Make sure you have the XPC plugin installed and enabled in your X-Plane application. This plugin is what allows this 
+application to query the simulation for the data needed to drive your GPS device.
+
+You need a serial cable connected between your X-Plane simulation machine and your physical Garmin GPS.
+This can be an RS232 to USB adapter. The USB adapter will show up in the devices directory i.e., /dev. 
+Modify the config.yml file with your serial device. 
+
+The Network/Loopback interface is used to periodically query the running simulation for position
+and speed data. This data is formatted into a valid Garmin AviationIn formatted message and sent via the
+serial connection to your GPS device. Note you can run this application on a different machine to the one running X-Plane.
+You must connect your GPS to the machine running this connector.
+
+## Garmin AviationIn Format Message Capture 
+Finding information online for the Garmin AviationIn message format was too hard. Garmin has not published details of 
+this serial protocol. 
+
+Knowing that X-Plane did have Windows only support for Garmin GPS hardware, I created a serial message capture
+utility that connects to the PC serial port and saves the data sent from the Windows version of X-Plane. This allowed 
+me to determine what the protocol was and how to create it.
+
+This function is enabled by running GarminGpsConnector with the `--mode monitor` command line option.
 
 Byte View:
 
@@ -46,6 +69,3 @@ The message elements are listed below:
 | T           | ?           | ?               | ---------  | N (Constant) |
 | w           | ?           | ?               | 01@        | Y? (Constant)|
 
-## X-Plane Garmin GPS Connector
-
-This connector depends on the XPC [X-Plane Connect](https://github.com/nasa/XPlaneConnect) created by NASA for research.
