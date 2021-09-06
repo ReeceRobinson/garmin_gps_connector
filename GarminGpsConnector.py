@@ -202,7 +202,7 @@ class GarminGpsConnector:
                     sio.write(msg)
                     sio.flush()
                     print(msg)
-                    time.sleep(2)
+                    time.sleep(0.5)
 
         except Exception as e:
             self.logger.info('Exception occurred. For details see log file.', e)
