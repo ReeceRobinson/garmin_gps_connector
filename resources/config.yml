@@ -1,7 +1,7 @@
 x-plane:
   connection:
     serial:
-      device: /dev/cu.usbserial-143120
+      device: /dev/tty.usbserial-143110
       baud: 9600
       timeout: 5
     network:
