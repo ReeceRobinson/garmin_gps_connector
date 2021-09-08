@@ -1,6 +1,9 @@
 import csv
 import io
 import logging
+import os
+
+import sys
 import time
 
 import click
@@ -15,14 +18,20 @@ class GarminGpsConnector:
     Garmin GPS Hardware connector for X-Plane and AviationIn format capture.pp
     """
     logging.basicConfig(filename='garmin_gps_connector.log', level=logging.INFO)
-    logger = logging.Logger("GarminGpsConnector")
     ch = logging.StreamHandler()
     ch.setLevel(logging.DEBUG)
+    logger = logging.Logger("GarminGpsConnector")
     logger.addHandler(ch)
 
     def __init__(self):
         self.config = GarminGpsConnector.load_config(self)
         self.logger.info('Configuration loaded:', self.config)
+
+        device = self.config['x-plane']['connection']['serial']['device']
+        device_ok = os.path.exists(device)
+        if not device_ok:
+            self.logger.error('Invalid device setting for x-plane/connection/serial/device. Value is currently {0}'.format(device))
+            sys.exit(-1)
 
     @staticmethod
     def load_config(self):
@@ -94,7 +103,7 @@ class GarminGpsConnector:
                         if msg.startswith('\x02'):
                             result = GarminGpsConnector.parse_message(self, msg)
                             writer.writerow(result)
-                            logging.info(result)
+                            self.logger.info(result)
                             self.logger.debug(msg)
                         msg = ""
                         if '\x02'.encode() in line_bytes:
@@ -201,12 +210,12 @@ class GarminGpsConnector:
                                                   "{0}{1:03n}".format(mag_prefix, abs(mag_var)))
                     sio.write(msg)
                     sio.flush()
-                    print(msg)
+                    self.logger.debug(msg)
                     time.sleep(0.5)
 
         except Exception as e:
-            self.logger.info('Exception occurred. For details see log file.', e)
-            logging.error(e)
+            message = 'Exception occurred while connecting to X-Plane. For details see log file. Error message: {0}'.format(e)
+            self.logger.info(message)
             sio.close()
             ser.close()
 
