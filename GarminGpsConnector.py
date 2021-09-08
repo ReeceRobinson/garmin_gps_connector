@@ -222,7 +222,7 @@ class GarminGpsConnector:
                         msg = message_template.format(altitude, *latitude, *longitude, compass, knots,
                                                       "{0}{1:03n}".format(mag_prefix, abs(mag_var)))
                         sio.write(msg)
-
+                        sio.flush()
                         self.logger.debug(msg)
                         time.sleep(0.5)
                     except Exception as te:
