@@ -1,6 +1,9 @@
 import csv
 import io
 import logging
+import os
+
+import sys
 import time
 
 import click
@@ -14,15 +17,31 @@ class GarminGpsConnector:
     """
     Garmin GPS Hardware connector for X-Plane and AviationIn format capture.pp
     """
-    logging.basicConfig(filename='garmin_gps_connector.log', level=logging.INFO)
-    logger = logging.Logger("GarminGpsConnector")
-    ch = logging.StreamHandler()
-    ch.setLevel(logging.DEBUG)
-    logger.addHandler(ch)
+    logger = logging.Logger("GarminGpsConnector", logging.DEBUG)
+
+    file_handler = logging.FileHandler('garmin_gps_connector.log')
+    formatter = logging.Formatter('%(asctime)s : %(levelname)s : %(name)s : %(message)s')
+    file_handler.setFormatter(formatter)
+
+    console_stream = logging.StreamHandler()
+    console_stream.setLevel(logging.ERROR)
+
+    # add handlers to logger
+    logger.addHandler(file_handler)
+    logger.addHandler(console_stream)
+
+    logger.info('Starting GarminGpsConnector')
 
     def __init__(self):
         self.config = GarminGpsConnector.load_config(self)
-        self.logger.info('Configuration loaded:', self.config)
+        logging.debug('Configuration loaded: {0}'.format(str(self.config.values())))
+
+        device = self.config['x-plane']['connection']['serial']['device']
+        device_ok = os.path.exists(device)
+        if not device_ok:
+            self.logger.error(
+                'Invalid device setting for x-plane/connection/serial/device. Value is currently {0}'.format(device))
+            sys.exit(-1)
 
     @staticmethod
     def load_config(self):
@@ -94,7 +113,7 @@ class GarminGpsConnector:
                         if msg.startswith('\x02'):
                             result = GarminGpsConnector.parse_message(self, msg)
                             writer.writerow(result)
-                            logging.info(result)
+                            self.logger.info(result)
                             self.logger.debug(msg)
                         msg = ""
                         if '\x02'.encode() in line_bytes:
@@ -176,37 +195,45 @@ class GarminGpsConnector:
                     timeout=self.config['x-plane']['connection']['network']['timeout']) as xplane_client:
                 self.logger.info('X-Plane connecting...')
                 xplane_connecting = True
+                # Test the connectivity before entering the run loop.
+                xplane_client.getPOSI()
                 while True:
-                    posi = xplane_client.getPOSI()
-                    if xplane_connecting:
-                        self.logger.info('X-Plane connected.')
-                        xplane_connecting = False
+                    try:
+                        posi = xplane_client.getPOSI()
+                        if xplane_connecting:
+                            self.logger.info('X-Plane connected.')
+                            xplane_connecting = False
 
-                    altitude = "{0:05n}".format(int(float(posi[2]) * 3.28084))
-                    latitude = self.convert_lat(posi[0])
-                    longitude = self.convert_lon(posi[1])
+                        altitude = "{0:05n}".format(int(float(posi[2]) * 3.28084))
+                        latitude = self.convert_lat(posi[0])
+                        longitude = self.convert_lon(posi[1])
 
-                    # The following dataRefs are compatible with x-plane 11.
-                    data_refs = ["sim/flightmodel/position/mag_psi", "sim/flightmodel/position/magnetic_variation",
-                                 "sim/cockpit2/gauges/indicators/airspeed_kts_pilot"]
-                    values = xplane_client.getDREFs(data_refs)
-                    compass = int(round(values[0][0]))
-                    mag_var = int(round(float(values[1][0]) * 10))
-                    mag_prefix = "W"
-                    if mag_var < 0:
-                        mag_prefix = "E"
-                    knots = int(round(values[2][0]))
+                        # The following dataRefs are compatible with x-plane 11.
+                        data_refs = ["sim/flightmodel/position/mag_psi", "sim/flightmodel/position/magnetic_variation",
+                                     "sim/cockpit2/gauges/indicators/airspeed_kts_pilot"]
+                        values = xplane_client.getDREFs(data_refs)
+                        compass = int(round(values[0][0]))
+                        mag_var = int(round(float(values[1][0]) * 10))
+                        mag_prefix = "W"
+                        if mag_var < 0:
+                            mag_prefix = "E"
+                        knots = int(round(values[2][0]))
 
-                    msg = message_template.format(altitude, *latitude, *longitude, compass, knots,
-                                                  "{0}{1:03n}".format(mag_prefix, abs(mag_var)))
-                    sio.write(msg)
-                    sio.flush()
-                    print(msg)
-                    time.sleep(0.5)
+                        msg = message_template.format(altitude, *latitude, *longitude, compass, knots,
+                                                      "{0}{1:03n}".format(mag_prefix, abs(mag_var)))
+                        sio.write(msg)
+
+                        self.logger.debug(msg)
+                        time.sleep(0.5)
+                    except Exception as te:
+                        self.logger.warning(
+                            'Timeout error while communicating with X-Plane. Possibly simulation was stopped while access X-Plane menus? Error: {0}'.format(
+                                te))
 
         except Exception as e:
-            self.logger.info('Exception occurred. For details see log file.', e)
-            logging.error(e)
+            message = 'Exception occurred while connecting to X-Plane. For details see log file. Error message: {0}'.format(
+                e)
+            self.logger.error(message)
             sio.close()
             ser.close()
 
