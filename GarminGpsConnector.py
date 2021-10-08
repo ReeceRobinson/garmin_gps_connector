@@ -2,6 +2,7 @@ import csv
 import io
 import logging
 import os
+import socket
 
 import sys
 import time
@@ -187,53 +188,61 @@ class GarminGpsConnector:
                 timeout=self.config['x-plane']['connection']['serial']['timeout'])
 
             sio = io.TextIOWrapper(io.BufferedWriter(ser), write_through=True, line_buffering=False, errors=None)
-            self.logger.info('GPS connected')
-            with xpc.XPlaneConnect(
-                    xpHost=self.config['x-plane']['connection']['network']['host'],
-                    xpPort=self.config['x-plane']['connection']['network']['xpport'],
-                    port=self.config['x-plane']['connection']['network']['port'],
-                    timeout=self.config['x-plane']['connection']['network']['timeout']) as xplane_client:
-                self.logger.info('X-Plane connecting...')
-                xplane_connecting = True
-                # Test the connectivity before entering the run loop.
-                xplane_client.getPOSI()
-                while True:
+            self.logger.info('GPS serial connection initialised.')
+            while True:
+                with xpc.XPlaneConnect(
+                        xpHost=self.config['x-plane']['connection']['network']['host'],
+                        xpPort=self.config['x-plane']['connection']['network']['xpport'],
+                        port=self.config['x-plane']['connection']['network']['port'],
+                        timeout=self.config['x-plane']['connection']['network']['timeout']) as xplane_client:
+                    self.logger.info('X-Plane connecting...')
                     try:
-                        posi = xplane_client.getPOSI()
-                        if xplane_connecting:
-                            self.logger.info('X-Plane connected.')
-                            xplane_connecting = False
+                        # Test the connectivity before entering the run loop.
+                        xplane_client.getPOSI()
+                    except socket.timeout as e:
+                        self.logger.info('Timeout connecting to XPlaneConnect, trying again...')
+                        continue
+                    self.logger.info('X-Plane connected.')
+                    while True:
+                        try:
+                            posi = xplane_client.getPOSI()
 
-                        altitude = "{0:05n}".format(int(float(posi[2]) * 3.28084))
-                        latitude = self.convert_lat(posi[0])
-                        longitude = self.convert_lon(posi[1])
+                            altitude = "{0:05n}".format(int(float(posi[2]) * 3.28084))
+                            latitude = self.convert_lat(posi[0])
+                            longitude = self.convert_lon(posi[1])
 
-                        # The following dataRefs are compatible with x-plane 11.
-                        data_refs = ["sim/flightmodel/position/mag_psi", "sim/flightmodel/position/magnetic_variation",
-                                     "sim/cockpit2/gauges/indicators/airspeed_kts_pilot"]
-                        values = xplane_client.getDREFs(data_refs)
-                        compass = int(round(values[0][0]))
-                        mag_var = int(round(float(values[1][0]) * 10))
-                        mag_prefix = "W"
-                        if mag_var < 0:
-                            mag_prefix = "E"
-                        knots = int(round(values[2][0]))
+                            # The following dataRefs are compatible with x-plane 11.
+                            data_refs = ["sim/flightmodel/position/mag_psi",
+                                         "sim/flightmodel/position/magnetic_variation",
+                                         "sim/cockpit2/gauges/indicators/airspeed_kts_pilot"]
+                            values = xplane_client.getDREFs(data_refs)
+                            compass = int(round(values[0][0]))
+                            mag_var = int(round(float(values[1][0]) * 10))
+                            mag_prefix = "W"
+                            if mag_var < 0:
+                                mag_prefix = "E"
+                            knots = int(round(values[2][0]))
 
-                        msg = message_template.format(altitude, *latitude, *longitude, compass, knots,
-                                                      "{0}{1:03n}".format(mag_prefix, abs(mag_var)))
-                        sio.write(msg)
-                        sio.flush()
-                        self.logger.debug(msg)
-                        time.sleep(0.5)
-                    except Exception as te:
-                        self.logger.warning(
-                            'Timeout error while communicating with X-Plane. Possibly simulation was stopped while access X-Plane menus? Error: {0}'.format(
-                                te))
+                            msg = message_template.format(altitude, *latitude, *longitude, compass, knots,
+                                                          "{0}{1:03n}".format(mag_prefix, abs(mag_var)))
+                            sio.write(msg)
+                            sio.flush()
+                            self.logger.debug('\n' + msg)
+                            time.sleep(1)
+                        except ValueError as ve:
+                            self.logger.warning(
+                                'Error communicating with X-PlaneConnect. Error: {0}'.format(ve)
+                            )
+                        except Exception as te:
+                            self.logger.warning(
+                                "Timeout error while communicating with X-Plane. Possibly X-Plane has quit or "
+                                "simulation was stopped while access X-Plane menus? Error: {0}".format(
+                                    te))
 
         except Exception as e:
-            message = 'Exception occurred while connecting to X-Plane. For details see log file. Error message: {0}'.format(
-                e)
+            message = 'Exception occurred. For details see log file. Error message: {0}'.format(e)
             self.logger.error(message)
+            self.logger.error(e.__traceback__)
             sio.close()
             ser.close()
 
@@ -248,6 +257,8 @@ def main(mode):
         client.monitor()
     else:
         client.run_gps()
+
+    logging.info('Exit.')
 
 
 if __name__ == "__main__":
